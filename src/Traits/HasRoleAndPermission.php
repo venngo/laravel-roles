@@ -219,13 +219,18 @@ trait HasRoleAndPermission
             return $permissionModel::select([$permissionTable.'.*', 'permission_role.created_at as pivot_created_at', 'permission_role.updated_at as pivot_updated_at'])
                 ->join('permission_role', 'permission_role.permission_id', '=', $permissionTable.'.id')
                 ->join($roleTable, $roleTable.'.id', '=', 'permission_role.role_id')
+                ->whereNull($roleTable.'.deleted_at')
                 ->whereIn($roleTable.'.id', $this->getRoles()->pluck('id')->toArray())
-                ->orWhere($roleTable.'.level', '<', $this->level())
+                ->orWhere(function ($query) use ($roleTable) {
+                    $query->where($roleTable.'.level', '<', $this->level())
+                          ->whereNull($roleTable.'.deleted_at');
+                })
                 ->groupBy([$permissionTable.'.id', $permissionTable.'.name', $permissionTable.'.slug', $permissionTable.'.description', $permissionTable.'.model', $permissionTable.'.created_at', 'permissions.updated_at', $permissionTable.'.deleted_at', 'pivot_created_at', 'pivot_updated_at']);
         } else {
             return $permissionModel::select([$permissionTable.'.*', 'permission_role.created_at as pivot_created_at', 'permission_role.updated_at as pivot_updated_at'])
                 ->join('permission_role', 'permission_role.permission_id', '=', $permissionTable.'.id')
                 ->join($roleTable, $roleTable.'.id', '=', 'permission_role.role_id')
+                ->whereNull($roleTable.'.deleted_at')
                 ->whereIn($roleTable.'.id', $this->getRoles()->pluck('id')->toArray())
                 ->groupBy([$permissionTable.'.id', $permissionTable.'.name', $permissionTable.'.slug', $permissionTable.'.description', $permissionTable.'.model', $permissionTable.'.created_at', $permissionTable.'.updated_at', $permissionTable.'.deleted_at', 'pivot_created_at', 'pivot_updated_at']);
         }
