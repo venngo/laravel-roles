@@ -2,6 +2,7 @@
 
 namespace jeremykenedy\LaravelRoles\Traits;
 
+use BadMethodCallException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -474,15 +475,32 @@ trait HasRoleAndPermission
 
     public function callMagic($method, $parameters)
     {
-        if (starts_with($method, 'is')) {
-            return $this->hasRole(snake_case(substr($method, 2), config('roles.separator')));
-        } elseif (starts_with($method, 'can')) {
-            return $this->hasPermission(snake_case(substr($method, 3), config('roles.separator')));
-        } elseif (starts_with($method, 'allowed')) {
-            return $this->allowed(snake_case(substr($method, 7), config('roles.separator')), $parameters[0], (isset($parameters[1])) ? $parameters[1] : true, (isset($parameters[2])) ? $parameters[2] : 'user_id');
+        if (Str::startsWith($method, 'is')) {
+            return $this->hasRole(Str::snake(substr($method, 2), config('roles.separator')));
+        } elseif (Str::startsWith($method, 'can')) {
+            return $this->hasPermission(Str::snake(substr($method, 3), config('roles.separator')));
+        } elseif (Str::startsWith($method, 'allowed')) {
+            $permission = Str::snake(substr($method, 7), config('roles.separator'));
+            $entity = $parameters[0] ?? null;
+            $owner = $parameters[1] ?? true;
+            $ownerColumn = $parameters[2] ?? 'user_id';
+            
+            if (!$entity instanceof Model) {
+                throw new InvalidArgumentException('Entity must be an instance of ' . Model::class);
+            }
+            
+            return $this->allowed($permission, $entity, $owner, $ownerColumn);
         }
 
-        return parent::__call($method, $parameters);
+        // For traits, we cannot use parent::__call() directly
+        // Try to call parent's __call if it exists using reflection
+        $parentClass = get_parent_class($this);
+        if ($parentClass && method_exists($parentClass, '__call')) {
+            $reflection = new \ReflectionMethod($parentClass, '__call');
+            return $reflection->invoke($this, $method, $parameters);
+        }
+        
+        throw new BadMethodCallException("Method [{$method}] does not exist.");
     }
 
     public function __call($method, $parameters)
