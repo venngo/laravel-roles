@@ -484,11 +484,11 @@ trait HasRoleAndPermission
             $entity = $parameters[0] ?? null;
             $owner = $parameters[1] ?? true;
             $ownerColumn = $parameters[2] ?? 'user_id';
-            
+
             if (!$entity instanceof Model) {
                 throw new InvalidArgumentException('Entity must be an instance of ' . Model::class);
             }
-            
+
             return $this->allowed($permission, $entity, $owner, $ownerColumn);
         }
 
@@ -497,9 +497,10 @@ trait HasRoleAndPermission
         $parentClass = get_parent_class($this);
         if ($parentClass && method_exists($parentClass, '__call')) {
             $reflection = new \ReflectionMethod($parentClass, '__call');
+
             return $reflection->invoke($this, $method, $parameters);
         }
-        
+
         throw new BadMethodCallException("Method [{$method}] does not exist.");
     }
 
