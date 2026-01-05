@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 use InvalidArgumentException;
 use jeremykenedy\LaravelRoles\Models\Permission;
 use jeremykenedy\LaravelRoles\Models\Role;
+use ReflectionMethod;
 
 trait HasRoleAndPermission
 {
@@ -496,7 +497,7 @@ trait HasRoleAndPermission
         // Try to call parent's __call if it exists using reflection
         $parentClass = get_parent_class($this);
         if ($parentClass && method_exists($parentClass, '__call')) {
-            $reflection = new \ReflectionMethod($parentClass, '__call');
+            $reflection = new ReflectionMethod($parentClass, '__call');
 
             return $reflection->invoke($this, $method, $parameters);
         }
