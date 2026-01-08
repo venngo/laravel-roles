@@ -487,7 +487,7 @@ trait HasRoleAndPermission
             $ownerColumn = $parameters[2] ?? 'user_id';
 
             if (!$entity instanceof Model) {
-                throw new InvalidArgumentException('Entity must be an instance of ' . Model::class);
+                throw new InvalidArgumentException('Entity must be an instance of '.Model::class);
             }
 
             return $this->allowed($permission, $entity, $owner, $ownerColumn);
