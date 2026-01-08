@@ -2,6 +2,7 @@
 
 namespace jeremykenedy\LaravelRoles\Traits;
 
+use BadMethodCallException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
@@ -10,6 +11,7 @@ use Illuminate\Support\Str;
 use InvalidArgumentException;
 use jeremykenedy\LaravelRoles\Models\Permission;
 use jeremykenedy\LaravelRoles\Models\Role;
+use ReflectionMethod;
 
 trait HasRoleAndPermission
 {
@@ -219,13 +221,18 @@ trait HasRoleAndPermission
             return $permissionModel::select([$permissionTable.'.*', 'permission_role.created_at as pivot_created_at', 'permission_role.updated_at as pivot_updated_at'])
                 ->join('permission_role', 'permission_role.permission_id', '=', $permissionTable.'.id')
                 ->join($roleTable, $roleTable.'.id', '=', 'permission_role.role_id')
+                ->whereNull($roleTable.'.deleted_at')
                 ->whereIn($roleTable.'.id', $this->getRoles()->pluck('id')->toArray())
-                ->orWhere($roleTable.'.level', '<', $this->level())
+                ->orWhere(function ($query) use ($roleTable) {
+                    $query->where($roleTable.'.level', '<', $this->level())
+                          ->whereNull($roleTable.'.deleted_at');
+                })
                 ->groupBy([$permissionTable.'.id', $permissionTable.'.name', $permissionTable.'.slug', $permissionTable.'.description', $permissionTable.'.model', $permissionTable.'.created_at', 'permissions.updated_at', $permissionTable.'.deleted_at', 'pivot_created_at', 'pivot_updated_at']);
         } else {
             return $permissionModel::select([$permissionTable.'.*', 'permission_role.created_at as pivot_created_at', 'permission_role.updated_at as pivot_updated_at'])
                 ->join('permission_role', 'permission_role.permission_id', '=', $permissionTable.'.id')
                 ->join($roleTable, $roleTable.'.id', '=', 'permission_role.role_id')
+                ->whereNull($roleTable.'.deleted_at')
                 ->whereIn($roleTable.'.id', $this->getRoles()->pluck('id')->toArray())
                 ->groupBy([$permissionTable.'.id', $permissionTable.'.name', $permissionTable.'.slug', $permissionTable.'.description', $permissionTable.'.model', $permissionTable.'.created_at', $permissionTable.'.updated_at', $permissionTable.'.deleted_at', 'pivot_created_at', 'pivot_updated_at']);
         }
@@ -469,15 +476,33 @@ trait HasRoleAndPermission
 
     public function callMagic($method, $parameters)
     {
-        if (starts_with($method, 'is')) {
-            return $this->hasRole(snake_case(substr($method, 2), config('roles.separator')));
-        } elseif (starts_with($method, 'can')) {
-            return $this->hasPermission(snake_case(substr($method, 3), config('roles.separator')));
-        } elseif (starts_with($method, 'allowed')) {
-            return $this->allowed(snake_case(substr($method, 7), config('roles.separator')), $parameters[0], (isset($parameters[1])) ? $parameters[1] : true, (isset($parameters[2])) ? $parameters[2] : 'user_id');
+        if (Str::startsWith($method, 'is')) {
+            return $this->hasRole(Str::snake(substr($method, 2), config('roles.separator')));
+        } elseif (Str::startsWith($method, 'can')) {
+            return $this->hasPermission(Str::snake(substr($method, 3), config('roles.separator')));
+        } elseif (Str::startsWith($method, 'allowed')) {
+            $permission = Str::snake(substr($method, 7), config('roles.separator'));
+            $entity = $parameters[0] ?? null;
+            $owner = $parameters[1] ?? true;
+            $ownerColumn = $parameters[2] ?? 'user_id';
+
+            if (!$entity instanceof Model) {
+                throw new InvalidArgumentException('Entity must be an instance of ' . Model::class);
+            }
+
+            return $this->allowed($permission, $entity, $owner, $ownerColumn);
         }
 
-        return parent::__call($method, $parameters);
+        // For traits, we cannot use parent::__call() directly
+        // Try to call parent's __call if it exists using reflection
+        $parentClass = get_parent_class($this);
+        if ($parentClass && method_exists($parentClass, '__call')) {
+            $reflection = new ReflectionMethod($parentClass, '__call');
+
+            return $reflection->invoke($this, $method, $parameters);
+        }
+
+        throw new BadMethodCallException("Method [{$method}] does not exist.");
     }
 
     public function __call($method, $parameters)
