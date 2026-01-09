@@ -12,6 +12,8 @@ A Powerful package for handling roles and permissions in Laravel. Supports Larav
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![MadeWithLaravel.com shield](https://madewithlaravel.com/storage/repo-shields/1363-shield.svg)](https://madewithlaravel.com/p/laravel-roles/shield-link)
 
+* If you want to sponsor this, please consider sponsoring a contributor and NOT me. Thank you to all who contribute!!
+
 #### Table of contents
 - [Features](#features)
 - [Installation](#installation)
