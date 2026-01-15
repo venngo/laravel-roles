@@ -1,5 +1,5 @@
 {
-    "name": "jeremykenedy/laravel-roles",
+    "name": "venngo/laravel-roles",
     "description": "A Powerful package for handling roles and permissions in Laravel. Supports Laravel 5.3 up to 12.",
     "keywords": [
         "laravel-roles",
